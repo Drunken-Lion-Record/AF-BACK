@@ -1,0 +1,22 @@
+spring:
+  profiles:
+    active: local
+    group:
+      local:
+        - file
+        - secret
+logging:
+  level:
+    com.drunkenlion.alcoholfriday: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.hibernate.orm.jdbc.extract: TRACE
+    org.springframework.transaction.interceptor: TRACE
+springdoc:
+  swagger-ui:
+    path: /docs
+custom:
+  tossPayments:
+    widget:
+      clientKey: test_ck_yZqmkKeP8g9y6Z7oq0GdVbQRxB9l
+      secretKey: ON_SECRET

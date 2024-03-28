@@ -1,0 +1,64 @@
+name: cd
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: create application.yml
+        run: |
+          echo '${{ secrets.DEV_APPLICATION_YML }}' > src/main/resources/application.yml
+
+      - name: create application-dev.yml
+        run: |
+          touch src/main/resources/application-dev.yml
+          echo '${{ secrets.DEV_APPLICATION_DEV_YML }}' >> src/main/resources/application-dev.yml
+
+      - name: create application-file.yml
+        run: |
+          touch src/main/resources/application-file.yml
+          echo '${{ secrets.DEV_APPLICATION_FILE_YML }}' >> src/main/resources/application-file.yml
+
+      - name: create application-secret.yml
+        run: |
+          touch src/main/resources/application-secret.yml
+          echo '${{ secrets.DEV_APPLICATION_SECRET_YML }}' >> src/main/resources/application-secret.yml
+
+      - name: Login ECR
+        run: |
+          docker login -u ${{ secrets.NCP_ACCESS_KEY }} -p ${{ secrets.NCP_SECRET_KEY }} ${{ secrets.NCP_ECR_URL }}
+
+      - name: Make Docker Image
+        run: |
+          docker build --build-arg PROFILE=dev -t alcohol-friday:${GITHUB_SHA::8} .
+
+      - name: Tag Docker Image
+        run: |
+          docker tag alcohol-friday:${GITHUB_SHA::8} ${{ secrets.NCP_ECR_URL }}/alcohol-friday:${GITHUB_SHA::8}
+
+      - name: Docker Image Push To ECR
+        run: |
+          docker push ${{ secrets.NCP_ECR_URL }}/alcohol-friday:${GITHUB_SHA::8}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: NCP Login And Deploy Script Run
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.NCP_HOST }}
+          username: ${{ secrets.NCP_USERNAME }}
+          password: ${{ secrets.NCP_PASSWORD }}
+          port: ${{ secrets.NCP_PORT }}
+          envs: GITHUB_SHA
+          script: |
+            cd /usr/local/docker
+            ./deploy-server.sh ${GITHUB_SHA::8}
